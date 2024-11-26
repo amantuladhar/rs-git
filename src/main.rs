@@ -2,6 +2,7 @@ use clap::{Parser, Subcommand};
 use commands::prelude::*;
 
 mod commands;
+mod shared;
 
 fn main() -> anyhow::Result<()> {
     let args = CmdArgs::parse();
@@ -23,11 +24,11 @@ struct CmdArgs {
 enum Command {
     Init,
     CatFile {
-        #[clap(short = 'p', long)]
+        #[arg(short = 'p', long)]
         pretty_print: String,
     },
     HashObject {
-        #[clap(short = 'w')]
-        write: bool,
+        #[arg(short = 'w', value_name = "--path=<file>")]
+        write: Option<String>,
     },
 }
