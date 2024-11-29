@@ -11,6 +11,7 @@ fn main() -> anyhow::Result<()> {
         Command::CatFile { pretty_print, hash } => cat_file(pretty_print, hash)?,
         Command::HashObject { write } => hash_object(write)?,
         Command::LsTree { name_only, hash } => ls_tree(name_only, hash)?,
+        Command::WriteTree => write_tree()?,
     }
     Ok(())
 }
@@ -38,4 +39,5 @@ enum Command {
         name_only: bool,
         hash: String,
     },
+    WriteTree,
 }

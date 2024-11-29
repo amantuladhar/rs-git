@@ -1,19 +1,23 @@
 use crate::log;
 use anyhow::{anyhow, Context};
-use flate2::bufread::ZlibDecoder;
+use flate2::{
+    bufread::{ZlibDecoder, ZlibEncoder},
+    Compression,
+};
+use sha1::{Digest, Sha1};
 use std::{
     fmt::Display,
-    fs::File,
+    fs::{self, File},
     io::{self, BufRead, BufReader, Read},
-    str,
-    str::FromStr,
+    path::Path,
+    str::{self, FromStr},
 };
 
 #[derive(Debug, PartialEq)]
 pub enum ObjKind {
     Blob,
     Tree,
-    Commit,
+    // Commit,
 }
 
 impl Display for ObjKind {
@@ -21,7 +25,7 @@ impl Display for ObjKind {
         match self {
             ObjKind::Blob => write!(f, "blob"),
             ObjKind::Tree => write!(f, "tree"),
-            ObjKind::Commit => write!(f, "commit"),
+            // ObjKind::Commit => write!(f, "commit"),
         }
     }
 }
@@ -132,6 +136,53 @@ pub fn print_tree_obj(mut object: Object<impl BufRead>, name_only: bool) -> anyh
             read_obj_file(&hash).with_context(|| log!("Unable to hash found on tree: {}", hash))?;
         println!("{:0>6} {} {}\t{}", mode, object.kind, hash, name);
     }
+}
+
+pub fn write_blob_object<P: AsRef<Path>>(path: P) -> anyhow::Result<Vec<u8>> {
+    let file = File::open(path).context(log!("Unable to open file"))?;
+    let mut reader = BufReader::new(file);
+
+    let mut plain_content = Vec::new();
+    let _ = reader
+        .read_to_end(&mut plain_content)
+        .context("Unable to read from")?;
+
+    let raw_hash =
+        write_object(ObjKind::Blob, &plain_content[..]).context(log!("unable to write object"))?;
+    Ok(raw_hash)
+}
+
+pub fn write_object(kind: ObjKind, content: &[u8]) -> anyhow::Result<Vec<u8>> {
+    let header = format!("{} {}\0", kind, content.len());
+    let mut final_blob: Vec<u8> = Vec::with_capacity(header.len() + content.len());
+    final_blob.extend(header.as_bytes());
+    final_blob.extend(content);
+
+    let mut hasher = Sha1::new();
+    hasher.update(&final_blob);
+    let raw_hash = hasher.finalize();
+    let sha_hash = (&raw_hash[..]).to_hex_string();
+
+    let obj_dir = &sha_hash[..2];
+    let obj_fname = &sha_hash[2..];
+    fs::create_dir_all(format!(".git/objects/{}", obj_dir))
+        .context(log!("Failed to create object directory"))?;
+    let file_path = format!(".git/objects/{}/{}", obj_dir, obj_fname);
+
+    // TODO: Any way to do this without deleting the file?
+    // git creates file with read only permission
+    // and if we go later, we get permission denied
+    if Path::new(&file_path).exists() {
+        fs::remove_file(&file_path)?;
+    }
+    let mut file =
+        File::create(&file_path).context(log!("unable to create a file: {:?}", file_path))?;
+    let buf_read = BufReader::new(&final_blob[..]);
+    let mut z_encoder = ZlibEncoder::new(buf_read, Compression::fast());
+    io::copy(&mut z_encoder, &mut file)?;
+    io::copy(&mut z_encoder, &mut file)?;
+
+    Ok(raw_hash.to_vec())
 }
 
 pub trait ToHex {

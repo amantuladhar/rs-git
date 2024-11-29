@@ -11,7 +11,7 @@ pub fn cat_file(pretty_print: bool, hash: String) -> anyhow::Result<()> {
     match obj.kind {
         ObjKind::Blob => print_blob_obj(obj)?,
         ObjKind::Tree => print_tree_obj(obj, false)?,
-        ObjKind::Commit => anyhow::bail!(log!("commit not yet implemented")),
+        // ObjKind::Commit => anyhow::bail!(log!("commit not yet implemented")),
     }
     Ok(())
 }

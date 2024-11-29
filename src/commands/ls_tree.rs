@@ -1,5 +1,5 @@
 use crate::log;
-use crate::shared::{print_blob_obj, print_tree_obj, read_obj_file, ObjKind};
+use crate::shared::{print_tree_obj, read_obj_file, ObjKind};
 use anyhow::Context;
 
 pub fn ls_tree(name_only: bool, hash: String) -> anyhow::Result<()> {
