@@ -17,7 +17,7 @@ use std::{
 pub enum ObjKind {
     Blob,
     Tree,
-    // Commit,
+    Commit,
 }
 
 impl Display for ObjKind {
@@ -25,7 +25,7 @@ impl Display for ObjKind {
         match self {
             ObjKind::Blob => write!(f, "blob"),
             ObjKind::Tree => write!(f, "tree"),
-            // ObjKind::Commit => write!(f, "commit"),
+            ObjKind::Commit => write!(f, "commit"),
         }
     }
 }
